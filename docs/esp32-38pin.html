@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="sq">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ESP32 38 pine - Diagrama</title>
+<style>
+  body { font-family: "Segoe UI", sans-serif; background: #f4f5f7; color: #222; margin: 0; padding: 20px; }
+  h1 { text-align: center; margin: 0 0 4px; font-size: 24px; }
+  .sub { text-align: center; color: #666; margin-bottom: 20px; }
+
+  .wrap { display: flex; justify-content: center; align-items: stretch; gap: 0; }
+  .side { display: flex; flex-direction: column; gap: 4px; padding-top: 70px; }
+  .pin { display: flex; align-items: center; gap: 6px; height: 30px; }
+  .left .pin { flex-direction: row-reverse; }
+  .left .pin .tags { justify-content: flex-end; }
+
+  .dot { width: 14px; height: 14px; border-radius: 50%; background: #c9a227; border: 2px solid #8a6d10; flex: none; }
+  .label { min-width: 62px; text-align: center; font-weight: bold; font-size: 13px; padding: 5px 6px;
+           border-radius: 6px; color: #fff; cursor: default; flex: none; }
+  .tags { display: flex; gap: 3px; flex-wrap: nowrap; width: 260px; }
+  .tag { font-size: 10.5px; padding: 2px 5px; border-radius: 4px; background: #e3e6eb; color: #333; white-space: nowrap; }
+  .tag.adc1 { background: #d4f0d9; } .tag.adc2 { background: #fde2c8; } .tag.dac { background: #d7e3fb; }
+  .tag.used { background: #ffd84d; font-weight: bold; }
+
+  .board { width: 210px; background: #1d1d1f; border-radius: 10px; margin: 0 6px; position: relative;
+           padding: 12px 0 18px; display: flex; flex-direction: column; align-items: center; }
+  .antenna { width: 150px; height: 40px; border: 3px solid #c9a227; border-bottom: none; border-radius: 4px 4px 0 0;
+             background: repeating-linear-gradient(90deg, transparent 0 12px, #c9a227 12px 15px); opacity: .7; }
+  .chip { width: 150px; height: 170px; background: #b8bcc2; border-radius: 4px; margin-top: 8px; display: flex;
+          flex-direction: column; align-items: center; justify-content: center; color: #333; font-weight: bold; }
+  .chip small { font-weight: normal; font-size: 11px; }
+  .btns { display: flex; justify-content: space-between; width: 170px; margin-top: auto; color: #ccc; font-size: 11px; }
+  .btn { background: #444; border-radius: 4px; padding: 6px 8px; text-align: center; }
+  .usb { width: 70px; height: 34px; background: #aaa; border-radius: 4px; margin-top: 10px; display: flex;
+         align-items: center; justify-content: center; font-size: 12px; font-weight: bold; color: #333; }
+  .led { color: #4af; font-size: 11px; margin-top: 10px; }
+
+  /* Ngjyrat e llojeve */
+  .t-power  { background: #d63031; }
+  .t-gnd    { background: #2d3436; }
+  .t-safe   { background: #27ae60; }
+  .t-input  { background: #8e44ad; }
+  .t-strap  { background: #e67e22; }
+  .t-uart   { background: #2980b9; }
+  .t-flash  { background: repeating-linear-gradient(45deg, #888 0 6px, #666 6px 12px); }
+  .t-en     { background: #636e72; }
+  .label.used { outline: 3px solid #ffd84d; outline-offset: 1px; }
+
+  .legend { max-width: 900px; margin: 30px auto 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .legend div { display: flex; gap: 10px; align-items: flex-start; background: #fff; padding: 10px; border-radius: 8px; font-size: 14px; }
+  .legend .label { min-width: 70px; }
+
+  .notes { max-width: 900px; margin: 20px auto; background: #fff; border-radius: 8px; padding: 14px 20px; font-size: 14px; line-height: 1.6; }
+  .notes h3 { margin: 6px 0; }
+  table { border-collapse: collapse; width: 100%; }
+  td, th { border-bottom: 1px solid #eee; padding: 5px 8px; text-align: left; }
+</style>
+</head>
+<body>
+<h1>ESP32 DevKit — 38 pine</h1>
+<div class="sub">Parë nga sipër: antena lart, USB poshtë. Kalo me maus mbi një pin për shpjegim.</div>
+
+<div class="wrap">
+  <div class="side left" id="left"></div>
+  <div class="board">
+    <div class="antenna"></div>
+    <div class="chip">ESP32-WROOM-32<small>WiFi + Bluetooth</small></div>
+    <div class="led">● LED blu = GPIO 2</div>
+    <div class="btns"><div class="btn">EN<br>(reset)</div><div class="btn">BOOT<br>(GPIO 0)</div></div>
+    <div class="usb">USB</div>
+  </div>
+  <div class="side right" id="right"></div>
+</div>
+
+<div class="legend">
+  <div><span class="label t-safe">D27</span><span><b>I sigurt</b>: hyrje ose dalje dixhitale, PWM (servo, LED). Përdori këto pa frikë.</span></div>
+  <div><span class="label t-input">D34</span><span><b>Vetëm hyrje</b>: lexon (butona, sensorë, analog), por <b>nuk nxjerr</b> dot sinjal dhe s'ka pull-up të brendshëm.</span></div>
+  <div><span class="label t-strap">D12</span><span><b>Kujdes (strapping)</b>: ESP32 e lexon këtë pin kur ndizet. Nëse diçka e mban lart/poshtë, mund të mos niset.</span></div>
+  <div><span class="label t-uart">TX0</span><span><b>USB / Serial</b>: përdoren nga kablli USB (Serial Monitor, ngarkimi i kodit). Mos i zër.</span></div>
+  <div><span class="label t-flash">CLK</span><span><b>MOS I PËRDOR</b>: të lidhura me memorien flash brenda. Nëse lidh diçka, ESP32 ngec.</span></div>
+  <div><span class="label t-power">3V3</span><span><b>Korrent</b>: 3V3 = 3.3 volt dalje. 5V (VIN) = 5 volt nga USB (ose hyrje 5V).</span></div>
+  <div><span class="tag adc1">ADC1</span><span><b>Analog (punon gjithmonë)</b>: lexon tension 0–3.3V si numër 0–4095. Edhe me WiFi ndezur.</span></div>
+  <div><span class="tag adc2">ADC2</span><span><b>Analog, por jo me WiFi</b>: kur WiFi është ndezur, këto <b>nuk lexojnë analog</b>. Si dixhitale punojnë normalisht.</span></div>
+  <div><span class="tag dac">DAC</span><span><b>Dalje analoge e vërtetë</b>: nxjerr tension 0–3.3V (vetëm 25 dhe 26).</span></div>
+  <div><span class="tag used">SERVO</span><span><b>Në përdorim tani</b> në këtë projekt.</span></div>
+</div>
+
+<div class="notes">
+  <h3>Shkurt</h3>
+  <table>
+    <tr><th>Dua të…</th><th>Përdor pinet</th></tr>
+    <tr><td>Lidh servo, LED, rele, ekran (dalje)</td><td>4, 13, 14, 16, 17, 18, 19, 21, 22, 23, 25, 26, 27, 32, 33</td></tr>
+    <tr><td>Lexoj buton ose puls (p.sh. monedha)</td><td>të njëjtat si sipër (kanë pull-up), ose 34, 35, 36, 39 me rezistencë të jashtme</td></tr>
+    <tr><td>Lexoj analog (potenciometër, sensor) <b>me WiFi</b></td><td>32, 33, 34, 35, 36 (VP), 39 (VN)</td></tr>
+    <tr><td>Pajisje I2C (OLED, RTC…)</td><td>SDA = 21, SCL = 22</td></tr>
+    <tr><td>Mos i prek</td><td>CLK, SD0, SD1, SD2, SD3, CMD (GPIO 6–11)</td></tr>
+  </table>
+  <p>“D” përpara numrit (D27) dhe “GPIO 27” janë e njëjta gjë. Në disa pllaka shkruhet edhe G27 ose IO27.</p>
+</div>
+
+<script>
+  // [emri në pllakë, lloji, etiketat, shpjegimi]
+  const LEFT = [
+    ['3V3',  'power', [], 'Dalje 3.3V. Ushqen sensorë/ekrane të vegjël (p.sh. TM1637).'],
+    ['EN',   'en',    [], 'Reset. Kur lidhet me GND, ESP32 rindizet (njësoj si butoni EN).'],
+    ['VP',   'input', ['GPIO36', 'ADC1'], 'GPIO 36 — vetëm hyrje, analog.'],
+    ['VN',   'input', ['GPIO39', 'ADC1'], 'GPIO 39 — vetëm hyrje, analog.'],
+    ['D34',  'input', ['ADC1'], 'Vetëm hyrje, analog.'],
+    ['D35',  'input', ['ADC1'], 'Vetëm hyrje, analog.'],
+    ['D32',  'safe',  ['ADC1', 'Touch', 'PWM'], 'I sigurt. Analog edhe me WiFi.'],
+    ['D33',  'safe',  ['ADC1', 'Touch', 'PWM'], 'I sigurt. Analog edhe me WiFi.'],
+    ['D25',  'safe',  ['ADC2', 'DAC', 'PWM'], 'I sigurt. Ka dalje analoge (DAC).'],
+    ['D26',  'safe',  ['ADC2', 'DAC', 'PWM', 'EKRAN CLK'], 'I sigurt. Tani: CLK i ekranit TM1637.'],
+    ['D27',  'safe',  ['ADC2', 'Touch', 'PWM', 'SERVO'], 'I sigurt. Tani: sinjali i servos.'],
+    ['D14',  'safe',  ['ADC2', 'Touch', 'PWM', 'EKRAN DIO'], 'I sigurt (nxjerr pak sinjal kur ndizet). Tani: DIO i ekranit TM1637.'],
+    ['D12',  'strap', ['ADC2', 'Touch'], 'KUJDES: nëse është lart kur ndizet, ESP32 nuk niset. Shmange.'],
+    ['GND',  'gnd',   [], 'Toka (minus).'],
+    ['D13',  'safe',  ['ADC2', 'Touch', 'PWM'], 'I sigurt.'],
+    ['SD2',  'flash', ['GPIO9'], 'MOS E PËRDOR — memoria flash.'],
+    ['SD3',  'flash', ['GPIO10'], 'MOS E PËRDOR — memoria flash.'],
+    ['CMD',  'flash', ['GPIO11'], 'MOS E PËRDOR — memoria flash.'],
+    ['5V',   'power', ['VIN'], '5V nga USB. Mund të ushqesh servon këtu, ose të futësh 5V nga karikues.'],
+  ];
+  const RIGHT = [
+    ['GND',  'gnd',   [], 'Toka (minus).'],
+    ['D23',  'safe',  ['SPI MOSI', 'PWM'], 'I sigurt.'],
+    ['D22',  'safe',  ['I2C SCL', 'PWM'], 'I sigurt. SCL për pajisje I2C.'],
+    ['TX0',  'uart',  ['GPIO1'], 'Serial TX — përdoret nga USB. Mos e zër.'],
+    ['RX0',  'uart',  ['GPIO3'], 'Serial RX — përdoret nga USB. Mos e zër.'],
+    ['D21',  'safe',  ['I2C SDA', 'PWM'], 'I sigurt. SDA për pajisje I2C.'],
+    ['GND',  'gnd',   [], 'Toka (minus).'],
+    ['D19',  'safe',  ['SPI MISO', 'PWM'], 'I sigurt.'],
+    ['D18',  'safe',  ['SPI SCK', 'PWM'], 'I sigurt.'],
+    ['D5',   'strap', ['SPI SS', 'PWM'], 'Kujdes: pin strapping, zakonisht punon si dalje.'],
+    ['TX2',  'safe',  ['GPIO17', 'PWM'], 'GPIO 17 — i sigurt.'],
+    ['RX2',  'safe',  ['GPIO16', 'PWM'], 'GPIO 16 — i sigurt.'],
+    ['D4',   'safe',  ['ADC2', 'Touch', 'PWM'], 'I sigurt.'],
+    ['D0',   'strap', ['ADC2', 'Touch', 'BOOT'], 'Butoni BOOT. Nëse është poshtë kur ndizet, ESP32 hyn në modalitet ngarkimi.'],
+    ['D2',   'strap', ['ADC2', 'Touch', 'LED'], 'LED-i blu i pllakës. Strapping, por si dalje punon mirë.'],
+    ['D15',  'strap', ['ADC2', 'Touch', 'PWM'], 'Kujdes: strapping. Zakonisht punon.'],
+    ['SD1',  'flash', ['GPIO8'], 'MOS E PËRDOR — memoria flash.'],
+    ['SD0',  'flash', ['GPIO7'], 'MOS E PËRDOR — memoria flash.'],
+    ['CLK',  'flash', ['GPIO6'], 'MOS E PËRDOR — memoria flash. (Ky NUK është CLK i ekranit!)'],
+  ];
+  const USED = ['SERVO', 'EKRAN CLK', 'EKRAN DIO'];
+
+  function render(list, id) {
+    const box = document.getElementById(id);
+    list.forEach(([name, type, tags, info]) => {
+      const row = document.createElement('div');
+      row.className = 'pin';
+      row.title = name + ': ' + info;
+      const isUsed = tags.some(t => USED.includes(t));
+      const tagHtml = tags.map(t => {
+        const cls = t === 'ADC1' ? 'adc1' : t === 'ADC2' ? 'adc2' : t === 'DAC' ? 'dac' : USED.includes(t) ? 'used' : '';
+        return '<span class="tag ' + cls + '">' + t + '</span>';
+      }).join('');
+      row.innerHTML = '<span class="dot"></span><span class="label t-' + type + (isUsed ? ' used' : '') + '">' + name +
+                      '</span><span class="tags">' + tagHtml + '</span>';
+      box.appendChild(row);
+    });
+  }
+  render(LEFT, 'left');
+  render(RIGHT, 'right');
+</script>
+</body>
+</html>

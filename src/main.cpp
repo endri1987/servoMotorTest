@@ -17,6 +17,11 @@
 const int SERVO_PIN = 27;
 const int BOOT_PIN  = 0;              // butoni BOOT i pllakës
 const char* HOSTNAME = "servo";       // -> http://servo.local
+
+// Ekrani LED me 4 shifra (TM1637)
+const int TM_DIO = 14;
+const int TM_CLK = 26;
+const int TM_NDRICIMI = 4;            // ndriçimi 0..7
 // --------------------------------
 
 Servo servo;
@@ -114,9 +119,61 @@ const char PAGE[] PROGMEM = R"rawliteral(
 </html>
 )rawliteral";
 
+// ---------- TM1637 ----------
+// Teli "1" = e lëmë të lirë (rezistenca e ekranit e tërheq lart), "0" = e tërheqim në GND.
+void tmTel(uint8_t pin, bool vlera) {
+  if (vlera) pinMode(pin, INPUT_PULLUP);
+  else { pinMode(pin, OUTPUT); digitalWrite(pin, LOW); }
+  delayMicroseconds(5);
+}
+
+void tmFillo() { tmTel(TM_DIO, 1); tmTel(TM_CLK, 1); tmTel(TM_DIO, 0); }
+void tmMbaro() { tmTel(TM_CLK, 0); tmTel(TM_DIO, 0); tmTel(TM_CLK, 1); tmTel(TM_DIO, 1); }
+
+// Dërgon një byte (biti më i vogël i pari). Kthen true nëse ekrani tha "e mora" (ACK).
+bool tmByte(uint8_t b) {
+  for (int i = 0; i < 8; i++) {
+    tmTel(TM_CLK, 0);
+    tmTel(TM_DIO, b & 1);
+    tmTel(TM_CLK, 1);
+    b >>= 1;
+  }
+  tmTel(TM_CLK, 0);
+  tmTel(TM_DIO, 1);
+  tmTel(TM_CLK, 1);
+  bool ack = digitalRead(TM_DIO) == LOW;
+  tmTel(TM_CLK, 0);
+  return ack;
+}
+
+// Shkruan 4 shifrat (segmentet) në ekran
+bool tmShfaq(const uint8_t seg[4]) {
+  tmFillo(); bool ok = tmByte(0x40); tmMbaro();          // shkruaj me adresa që rriten vetë
+  tmFillo(); ok &= tmByte(0xC0);                         // fillo nga shifra e parë
+  for (int i = 0; i < 4; i++) ok &= tmByte(seg[i]);
+  tmMbaro();
+  tmFillo(); ok &= tmByte(0x88 | TM_NDRICIMI); tmMbaro(); // ndize ekranin
+  return ok;
+}
+
+const uint8_t SHIFRAT[10] = {0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F};
+#define GRADE 0x63   // shenja ° (katrori i vogël lart)
+
+// Këndi i servos, p.sh. " 90°" ose "180°"
+void shfaqKendin(int angle) {
+  uint8_t seg[4];
+  seg[0] = angle >= 100 ? SHIFRAT[angle / 100] : 0;
+  seg[1] = angle >= 10 ? SHIFRAT[(angle / 10) % 10] : 0;
+  seg[2] = SHIFRAT[angle % 10];
+  seg[3] = GRADE;
+  tmShfaq(seg);
+}
+// ----------------------------
+
 void moveTo(int angle) {
   currentAngle = angle;
   servo.write(angle);
+  shfaqKendin(angle);
   Serial.printf("STATE angle=%d sweep=%d\n", currentAngle, sweeping ? 1 : 0);
 }
 
@@ -164,7 +221,14 @@ void setup() {
   Serial.begin(115200);
   Serial.setTimeout(50);                 // mos prit gjatë kur lexon një komandë
   pinMode(BOOT_PIN, INPUT_PULLUP);
-  servo.setPeriodHertz(50);              // servot standarde punojnë me 50 Hz
+
+  // Test i ekranit: ndez të gjitha segmentet ("8.8.8.8.") për 1 sekondë
+  const uint8_t teGjitha[4] = {0xFF, 0xFF, 0xFF, 0xFF};
+  Serial.printf("Ekrani TM1637 (DIO=%d, CLK=%d): %s\n", TM_DIO, TM_CLK,
+                tmShfaq(teGjitha) ? "OK" : "NUK PERGJIGJET - kontrollo telat");
+  delay(1000);
+
+  servo.setPeriodHertz(50);             // servot standarde punojnë me 50 Hz
   servo.attach(SERVO_PIN, 500, 2400);    // gjatësia e pulsit për 0° dhe 180°
   moveTo(90);                            // fillon në mes
 
