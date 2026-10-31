@@ -1,0 +1,96 @@
+#include <Arduino.h>
+#include <WiFi.h>
+#include <HTTPClient.h>
+
+// ---------- CILËSIMET ----------
+// ESP32 krijon WiFi-n e vet; Shelly lidhet vetëm këtu (s'varet nga routeri i klientit)
+const char* AP_SSID = "CoinBox";
+const char* AP_PASS = "coinbox2026";   // të paktën 8 shkronja
+
+const char* SHELLY_IP = "192.168.4.50";   // IP fikse që i vendosim Shelly-t
+
+const int COIN_PIN = 27;   // sinjali nga pranuesi
+const int LED_PIN  = 2;    // LED i vogël i pllakës: ndezur sa kohë ka seancë
+
+const int PULSES_REQUIRED = 1;                    // sa pulse = pagesë e plotë (p.sh. 25c)
+const unsigned long SESSION_SECONDS = 900;        // 15 minuta për çdo pagesë
+const unsigned long PULSE_GROUP_MS = 400;         // pritja pas pulsit të fundit
+// --------------------------------
+
+volatile int pulseCount = 0;
+volatile unsigned long lastPulseMs = 0;
+volatile unsigned long lastEdgeUs = 0;
+
+unsigned long sessionEndMs = 0;
+
+void IRAM_ATTR onCoinPulse() {
+  unsigned long nowUs = micros();
+  if (nowUs - lastEdgeUs < 5000) return;   // injoro zhurmën
+  lastEdgeUs = nowUs;
+  pulseCount++;
+  lastPulseMs = millis();
+}
+
+void startAccessPoint() {
+  WiFi.mode(WIFI_AP);
+  WiFi.setSleep(false);
+  WiFi.softAP(AP_SSID, AP_PASS);
+  Serial.print("WiFi 'CoinBox' gati, IP e ESP32: ");
+  Serial.println(WiFi.softAPIP());   // zakonisht 192.168.4.1
+}
+
+bool shellyOn(unsigned long seconds) {
+  HTTPClient http;
+  String url = String("http://") + SHELLY_IP +
+               "/rpc/Switch.Set?id=0&on=true&toggle_after=" + String(seconds);
+  http.begin(url);
+  http.setTimeout(5000);
+  int code = http.GET();
+  http.end();
+  Serial.printf("Shelly ON %lus -> HTTP %d\n", seconds, code);
+  return code == 200;
+}
+
+void startPayment() {
+  unsigned long now = millis();
+  unsigned long remaining = (sessionEndMs > now) ? (sessionEndMs - now) / 1000 : 0;
+  unsigned long total = remaining + SESSION_SECONDS;   // shtohet kohë nëse ka seancë aktive
+
+  if (shellyOn(total)) {
+    sessionEndMs = now + total * 1000UL;
+    Serial.printf(">>> PAGESA OK, koha totale: %lu s\n", total);
+  } else {
+    Serial.println("!!! Shelly nuk u përgjigj, pagesa nuk u aplikua");
+  }
+}
+
+void setup() {
+  Serial.begin(115200);
+  pinMode(LED_PIN, OUTPUT);
+  pinMode(COIN_PIN, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(COIN_PIN), onCoinPulse, FALLING);
+  startAccessPoint();
+  Serial.println("Gati. Prit monedhe...");
+}
+
+void loop() {
+  // Përfundo grupin e pulseve
+  noInterrupts();
+  int count = pulseCount;
+  unsigned long last = lastPulseMs;
+  interrupts();
+
+  if (count > 0 && millis() - last > PULSE_GROUP_MS) {
+    noInterrupts();
+    pulseCount = 0;
+    interrupts();
+    Serial.printf("Pulse të marra: %d\n", count);
+    if (count >= PULSES_REQUIRED) startPayment();
+    else Serial.println("Monedhë e pamjaftueshme, injorohet");
+  }
+
+  // LED sa kohë ka seancë
+  digitalWrite(LED_PIN, (sessionEndMs > millis()) ? HIGH : LOW);
+
+  delay(20);
+}

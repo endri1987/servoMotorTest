@@ -1,0 +1,17 @@
+#include <Arduino.h>
+#include <ESP32Servo.h>
+
+Servo servo;
+const int SERVO_PIN = 13;
+
+void setup() {
+  Serial.begin(115200);
+  servo.setPeriodHertz(50);
+  servo.attach(SERVO_PIN, 500, 2400);
+  Serial.println("Test servo: po shkoj ne 90 dhe po e mbaj");
+  servo.write(90);
+}
+
+void loop() {
+  // Servo mbetet i lidhur dhe mban 90 gradë
+}
